@@ -23,12 +23,11 @@ class TaskApiClient {
         'Content-Type': 'application/json',
         ...options.headers,
       },
-      credentials: 'include', // Include cookies in requests
       ...options,
     }
 
-    // Get JWT from cookies and add as Authorization header
-    const token = this.getTokenFromCookies()
+    // Add JWT token from localStorage as Authorization header
+    const token = localStorage.getItem('authToken')
     if (token) {
       config.headers = {
         ...config.headers,
@@ -37,36 +36,46 @@ class TaskApiClient {
     }
 
     try {
+      console.log('Making tasks request to:', url)
+      console.log('Request config:', {
+        ...config,
+        headers: config.headers
+      })
+      
       const response = await fetch(url, config)
+      
+      console.log('Tasks response status:', response.status)
+      console.log('Tasks response ok:', response.ok)
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({
           detail: 'An unexpected error occurred'
         }))
+        console.log('Tasks error data:', errorData)
         throw new Error(errorData.detail || `HTTP ${response.status}`)
       }
 
-      return await response.json()
+      const data = await response.json()
+      console.log('Tasks response data:', data)
+      return data
     } catch (error) {
+      console.error('Tasks fetch error details:', error)
+      
       if (error instanceof Error) {
+        console.error('Tasks error details:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        })
+        
+        // Check for specific network errors
+        if (error.message === 'Failed to fetch') {
+          throw new Error('Unable to connect to server. Please check if the backend is running and CORS is configured properly.')
+        }
         throw error
       }
       throw new Error('Network error occurred')
     }
-  }
-
-  // Helper method to extract JWT token from cookies
-  private getTokenFromCookies(): string | null {
-    if (typeof document === 'undefined') return null
-    
-    const cookies = document.cookie.split(';')
-    for (let cookie of cookies) {
-      const [name, value] = cookie.trim().split('=')
-      if (name === 'access_token') { // Adjust cookie name as per your backend
-        return value
-      }
-    }
-    return null
   }
 
   // Task endpoints

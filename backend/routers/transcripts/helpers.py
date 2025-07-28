@@ -8,6 +8,56 @@ from .schemas import AIGeneratedTask
 
 logger = logging.getLogger(__name__)
 
+def are_tasks_similar(task1_title: str, task2_title: str, task1_desc: str, task2_desc: str) -> bool:
+    """
+    Check if two tasks are similar enough to be considered duplicates
+    """
+    # Convert to lowercase for comparison
+    title1, title2 = task1_title.lower(), task2_title.lower()
+    desc1, desc2 = task1_desc.lower(), task2_desc.lower()
+    
+    # Check for similar titles (common words)
+    title1_words = set(title1.split())
+    title2_words = set(title2.split())
+    common_title_words = title1_words.intersection(title2_words)
+    
+    # If they share 60% or more of title words, they might be similar
+    if len(common_title_words) >= 0.6 * min(len(title1_words), len(title2_words)):
+        return True
+    
+    # Check for similar descriptions (common phrases)
+    desc1_words = set(desc1.split())
+    desc2_words = set(desc2.split())
+    common_desc_words = desc1_words.intersection(desc2_words)
+    
+    # If they share 50% or more of description words, they might be similar
+    if len(common_desc_words) >= 0.5 * min(len(desc1_words), len(desc2_words)):
+        return True
+    
+    return False
+
+def deduplicate_tasks(tasks: List[AIGeneratedTask]) -> List[AIGeneratedTask]:
+    """
+    Remove duplicate or very similar tasks from the list
+    """
+    if len(tasks) <= 1:
+        return tasks
+    
+    unique_tasks = []
+    
+    for task in tasks:
+        is_duplicate = False
+        for existing_task in unique_tasks:
+            if are_tasks_similar(task.title, existing_task.title, task.description, existing_task.description):
+                logger.info(f"Removing duplicate task: '{task.title}' (similar to existing: '{existing_task.title}')")
+                is_duplicate = True
+                break
+        
+        if not is_duplicate:
+            unique_tasks.append(task)
+    
+    return unique_tasks
+
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel('gemini-1.5-flash')
@@ -46,20 +96,29 @@ Create a concise, well-structured summary of the meeting that includes:
 - Any deadlines or timelines mentioned
 
 **TASK 2: EXTRACT ACTION ITEMS**
-Extract actionable tasks from the meeting. For each task:
+Extract actionable tasks from the meeting. Follow this EXACT process:
 
+STEP 1: Identify all unique action items mentioned in the transcript
+STEP 2: Group similar or related actions together 
+STEP 3: Create ONE consolidated task per group
+
+For each final task:
 1. **Title**: Create a clear, actionable title (max 100 characters)
 2. **Description**: Provide a detailed description of what needs to be done
 3. **Priority**: Assign priority as "HIGH", "MEDIUM", or "LOW" based on urgency and importance
 4. **Team Assignment**: Assign to the most appropriate team from: {teams_str}
 5. **Tags**: Add relevant tags (optional, comma-separated)
 
-**CRITICAL: AVOID DUPLICATE TASKS**
-- Each task must be UNIQUE and DISTINCT from all other tasks
-- Do NOT create multiple tasks for the same action item, even with different wording
-- If similar topics are discussed multiple times, consolidate into ONE comprehensive task
-- Ensure each task has a clearly different purpose and outcome
-- Review your task list before finalizing to eliminate any duplicates or near-duplicates
+**MANDATORY DEDUPLICATION RULES:**
+- NEVER create separate tasks for the same underlying action
+- If multiple people mention the same task, create only ONE task
+- If a task has multiple subtasks, combine them into ONE comprehensive task
+- Examples of what NOT to do:
+  * "Set up Office Network" and "Finalize Office Network Setup" (SAME TASK)
+  * "Order New Hardware" and "Order New Hardware for Design Team" (SAME TASK)
+  * "Update Employee Records with new Additions" and "Update Employee Records and send FAQ" (SAME TASK)
+- Before finalizing, ask yourself: "Could any two tasks be combined or are they redundant?"
+- Maximum 5-7 tasks total - consolidate aggressively
 
 **TASK 3: SENTIMENT ANALYSIS**
 Analyze the overall sentiment and tone of the meeting. Consider:
@@ -115,8 +174,9 @@ Make sure to:
 - Be specific and clear in task descriptions
 - Assign appropriate teams based on task content
 - Return valid JSON format
-- Include 3-7 UNIQUE tasks if the transcript contains that much actionable content
-- NEVER create duplicate or near-duplicate tasks
+- Include 3-7 UNIQUE tasks maximum - prioritize consolidation over quantity
+- FINAL CHECK: Review each task and eliminate any that are similar or redundant
+- Each task must have a clearly distinct purpose and deliverable
 """
 
     try:
@@ -164,6 +224,12 @@ Make sure to:
             except Exception as e:
                 logger.error(f"Error processing task data: {task_data}, Error: {e}")
                 continue
+        
+        # Apply deduplication to remove similar tasks
+        original_count = len(tasks)
+        tasks = deduplicate_tasks(tasks)
+        if len(tasks) < original_count:
+            logger.info(f"Deduplication removed {original_count - len(tasks)} duplicate tasks")
         
         if not tasks:
             tasks.append(AIGeneratedTask(

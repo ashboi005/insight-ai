@@ -13,6 +13,7 @@ class TranscriptResponse(BaseModel):
     title: str
     content: str
     summary: Optional[str]
+    sentiment: Optional[str] 
     original_filename: Optional[str]
     storage_file_path: Optional[str]
     file_size: Optional[int]

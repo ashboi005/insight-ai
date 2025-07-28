@@ -54,6 +54,7 @@ class Transcript(Base):
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
     summary = Column(Text, nullable=True) 
+    sentiment = Column(Text, nullable=True)
     original_filename = Column(String(255), nullable=True)  
     storage_file_path = Column(String(500), nullable=True)  
     file_size = Column(Integer, nullable=True) 

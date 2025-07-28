@@ -7,6 +7,8 @@ import os
 import logging
 
 from routers.auth.auth import router as auth_router
+from routers.transcripts.transcripts import router as transcripts_router
+from routers.tasks.tasks import router as tasks_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,6 +34,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
+app.include_router(transcripts_router)
+app.include_router(tasks_router)
 
 #changed the usual /docs route to show spotlightUI insetad of swagger
 @app.get("/docs", include_in_schema=False)

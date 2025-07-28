@@ -15,10 +15,10 @@ else:
     model = None
     logger.warning("GEMINI_API_KEY not found. AI features will not work.")
 
-async def extract_tasks_and_summary_from_transcript(transcript_content: str, transcript_title: str) -> tuple[List[AIGeneratedTask], str]:
+async def extract_tasks_and_summary_from_transcript(transcript_content: str, transcript_title: str) -> tuple[List[AIGeneratedTask], str, str]:
     """
-    Use Gemini AI to extract actionable tasks and generate summary from meeting transcript
-    Returns: (tasks_list, summary)
+    Use Gemini AI to extract actionable tasks, generate summary, and analyze sentiment from meeting transcript
+    Returns: (tasks_list, summary, sentiment)
     """
     if not model:
         raise Exception("Gemini AI not configured. Please set GEMINI_API_KEY.")
@@ -26,15 +26,16 @@ async def extract_tasks_and_summary_from_transcript(transcript_content: str, tra
     available_teams = [team.value for team in Team]
     teams_str = ", ".join(available_teams)
     
+    #this prompt for AI was obviously made by AI hehe (AI is the better prompt engineer (than me atleast))
     prompt = f"""
-You are an AI assistant that analyzes meeting transcripts to extract actionable tasks and create summaries.
+You are an AI assistant that analyzes meeting transcripts to extract actionable tasks, create summaries, and analyze sentiment.
 
 MEETING TITLE: {transcript_title}
 
 MEETING TRANSCRIPT:
 {transcript_content}
 
-Please perform TWO tasks:
+Please perform THREE tasks:
 
 **TASK 1: GENERATE SUMMARY**
 Create a concise, well-structured summary of the meeting that includes:
@@ -52,6 +53,16 @@ Extract actionable tasks from the meeting. For each task:
 3. **Priority**: Assign priority as "high", "medium", or "low" based on urgency and importance
 4. **Team Assignment**: Assign to the most appropriate team from: {teams_str}
 5. **Tags**: Add relevant tags (optional, comma-separated)
+
+**TASK 3: SENTIMENT ANALYSIS**
+Analyze the overall sentiment and tone of the meeting. Consider:
+- Overall mood (positive, neutral, negative)
+- Team dynamics and collaboration level
+- Stress or urgency indicators
+- Confidence in decisions made
+- Any concerns or conflicts mentioned
+
+Provide a brief sentiment summary (2-3 sentences) with an overall sentiment classification: "positive", "neutral", or "negative".
 
 **Team Assignment Guidelines:**
 - @Sales: Revenue, deals, client relationships, sales targets
@@ -71,6 +82,7 @@ Extract actionable tasks from the meeting. For each task:
 Return your response in this EXACT JSON format:
 {{
   "summary": "Your detailed meeting summary here...",
+  "sentiment": "Your sentiment analysis summary here with classification: positive/neutral/negative",
   "tasks": [
     {{
       "title": "Task title here",
@@ -84,6 +96,7 @@ Return your response in this EXACT JSON format:
 
 Make sure to:
 - Create a comprehensive but concise summary
+- Provide thoughtful sentiment analysis
 - Extract only actionable items (not just discussion points)
 - Be specific and clear in task descriptions
 - Assign appropriate teams based on task content
@@ -107,6 +120,7 @@ Make sure to:
         json_text = response_text[json_start:json_end]
         result_data = json.loads(json_text)
         summary = result_data.get('summary', 'No summary generated')
+        sentiment = result_data.get('sentiment', 'No sentiment analysis available')
         tasks_data = result_data.get('tasks', [])
         tasks = []
         
@@ -142,8 +156,8 @@ Make sure to:
                 tags="review, follow-up"
             ))
         
-        logger.info(f"Successfully extracted {len(tasks)} tasks and summary from transcript")
-        return tasks, summary
+        logger.info(f"Successfully extracted {len(tasks)} tasks, summary, and sentiment from transcript")
+        return tasks, summary, sentiment
         
     except json.JSONDecodeError as e:
         logger.error(f"JSON decode error: {e}")
@@ -152,7 +166,9 @@ Make sure to:
     
     except Exception as e:
         logger.error(f"Error extracting tasks and summary: {e}")
-        raise Exception(f"Failed to extract tasks and summary: {str(e)}")
+        raise Exception(f"Failed to extract tasks, summary, and sentiment: {str(e)}")
+
+
 
 
 

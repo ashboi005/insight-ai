@@ -72,12 +72,13 @@ Team: {current_user.team.value}
             logger.warning(f"Failed to store file for transcript {new_transcript.id}: {e}")
         
         try:
-            ai_tasks, summary = await extract_tasks_and_summary_from_transcript(
+            ai_tasks, summary, sentiment = await extract_tasks_and_summary_from_transcript(
                 transcript_data.content, 
                 transcript_data.title
             )
             
             new_transcript.summary = summary
+            new_transcript.sentiment = sentiment
             
             for ai_task in ai_tasks:
                 task = Task(
@@ -159,8 +160,9 @@ async def upload_transcript_file(
             logger.warning(f"Failed to store uploaded file for transcript {new_transcript.id}: {e}")
 
         try:
-            ai_tasks, summary = await extract_tasks_and_summary_from_transcript(content, title)
+            ai_tasks, summary, sentiment = await extract_tasks_and_summary_from_transcript(content, title)
             new_transcript.summary = summary
+            new_transcript.sentiment = sentiment
             for ai_task in ai_tasks:
                 task = Task(
                     title=ai_task.title,
@@ -213,8 +215,9 @@ async def generate_tasks_from_transcript(
         )
     
     try:
-        ai_tasks, summary = await extract_tasks_and_summary_from_transcript(transcript.content, transcript.title)
+        ai_tasks, summary, sentiment = await extract_tasks_and_summary_from_transcript(transcript.content, transcript.title)
         transcript.summary = summary
+        transcript.sentiment = sentiment
         created_tasks = []
         for ai_task in ai_tasks:
             task = Task(

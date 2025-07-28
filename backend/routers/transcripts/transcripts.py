@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_, or_, delete
 from sqlalchemy.orm import joinedload
 from typing import List, Optional
 import io
@@ -327,8 +327,7 @@ async def delete_transcript(
             detail="Transcript not found"
         )
     
-    #cascade delete the tasks first so transcirpt can also be deleted
-    await db.execute(select(Task).where(Task.transcript_id == transcript_id))
+    await db.execute(delete(Task).where(Task.transcript_id == transcript_id))
     await db.delete(transcript)
     await db.commit()
     

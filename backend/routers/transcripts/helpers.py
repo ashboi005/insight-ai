@@ -50,7 +50,7 @@ Extract actionable tasks from the meeting. For each task:
 
 1. **Title**: Create a clear, actionable title (max 100 characters)
 2. **Description**: Provide a detailed description of what needs to be done
-3. **Priority**: Assign priority as "high", "medium", or "low" based on urgency and importance
+3. **Priority**: Assign priority as "HIGH", "MEDIUM", or "LOW" based on urgency and importance
 4. **Team Assignment**: Assign to the most appropriate team from: {teams_str}
 5. **Tags**: Add relevant tags (optional, comma-separated)
 
@@ -101,7 +101,7 @@ Return your response in this EXACT JSON format:
     {{
       "title": "Task title here",
       "description": "Detailed description of the task",
-      "priority": "high|medium|low",
+      "priority": "HIGH|MEDIUM|LOW",
       "assigned_team": "Sales|Devs|Marketing|Design|Operations|Finance|HR|General",
       "tags": "optional, comma, separated, tags"
     }}
@@ -148,6 +148,9 @@ Make sure to:
                 priority_value = task_data.get('priority', 'medium').lower()
                 if priority_value not in ['high', 'medium', 'low']:
                     priority_value = 'medium'
+                
+                # Convert to uppercase to match TaskPriority enum values
+                priority_value = priority_value.upper()
                 
                 task = AIGeneratedTask(
                     title=task_data.get('title', 'Untitled Task')[:255],  # Truncate if too long

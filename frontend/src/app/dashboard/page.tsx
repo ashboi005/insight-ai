@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import MainLayout from "@/components/ui/layout/main-layout"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Trash2, CheckCircle, Clock, Loader2, Users, Filter, Search, SortAsc, Calendar, Activity } from "lucide-react"
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
-import { tasksAPI, Task, TaskAnalytics } from "@/lib/api"
+import { Trash2, CheckCircle, Clock, Loader2, Users, Filter, Search, Activity } from "lucide-react"
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
+import { tasksAPI, Task } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
 
 interface AnalyticsData {
@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([])
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData[]>([])
   const [priorityData, setPriorityData] = useState<PriorityData[]>([])
-  const [teamActivity, setTeamActivity] = useState<any[]>([])
+  const [teamActivity, setTeamActivity] = useState<AnalyticsData[]>([])
   const [recentActivity, setRecentActivity] = useState<Task[]>([])
   const [showTeamActivity, setShowTeamActivity] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -49,18 +49,16 @@ export default function DashboardPage() {
   const [showRecentActivity, setShowRecentActivity] = useState(false)
   
   // Pagination states
-  const [currentPage, setCurrentPage] = useState(0)
   const [tasksPerPage] = useState(20)
   const [hasMoreTasks, setHasMoreTasks] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   
   const { user } = useAuth()
 
-  const loadData = async (append: boolean = false) => {
+  const loadData = useCallback(async (append: boolean = false) => {
     try {
       if (!append) {
         setIsLoading(true)
-        setCurrentPage(0)
       } else {
         setIsLoadingMore(true)
       }
@@ -124,7 +122,7 @@ export default function DashboardPage() {
       setIsLoading(false)
       setIsLoadingMore(false)
     }
-  }
+  }, [tasks.length, tasksPerPage])
 
   const loadMoreTasks = () => {
     if (!isLoadingMore && hasMoreTasks) {
@@ -134,7 +132,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [loadData])
 
   // Filter and sort tasks whenever filters change
   useEffect(() => {
@@ -161,7 +159,7 @@ export default function DashboardPage() {
 
     // Apply sorting
     filtered.sort((a, b) => {
-      let aValue: any, bValue: any
+      let aValue: string | number, bValue: string | number
 
       switch (sortField) {
         case 'created_at':
@@ -183,8 +181,8 @@ export default function DashboardPage() {
           bValue = b.title.toLowerCase()
           break
         default:
-          aValue = a.created_at
-          bValue = b.created_at
+          aValue = new Date(a.created_at).getTime()
+          bValue = new Date(b.created_at).getTime()
       }
 
       if (sortOrder === 'asc') {
@@ -209,47 +207,6 @@ export default function DashboardPage() {
   const getUniqueTeams = () => {
     const teams = [...new Set(tasks.map(task => task.assigned_team))]
     return teams.sort()
-  }
-
-  const toggleTaskCompletion = async (taskId: number, currentStatus: string) => {
-    try {
-      setIsUpdating(taskId.toString())
-      
-      const updatedTask = await tasksAPI.toggleComplete(taskId, currentStatus)
-      
-      // Update the task in the local state
-      setTasks(prevTasks =>
-        prevTasks.map(task =>
-          task.id === taskId ? updatedTask : task
-        )
-      )
-      
-      toast.success("Task status updated successfully")
-      
-      // Reload analytics to get updated counts
-      const analytics = await tasksAPI.getAnalytics(false)
-      const chartData: AnalyticsData[] = [
-        { name: "Completed", value: analytics.overall_stats.completed_tasks, color: "#22c55e" },
-        { name: "In Progress", value: analytics.overall_stats.in_progress_tasks, color: "#3b82f6" },
-        { name: "Pending", value: analytics.overall_stats.pending_tasks, color: "#f59e0b" },
-      ].filter(item => item.value > 0)
-      
-      setAnalyticsData(chartData)
-
-      // Update priority data
-      const priorityChartData: PriorityData[] = [
-        { name: "High", value: analytics.overall_stats.high_priority, color: "#ef4444" },
-        { name: "Medium", value: analytics.overall_stats.medium_priority, color: "#f59e0b" },
-        { name: "Low", value: analytics.overall_stats.low_priority, color: "#22c55e" },
-      ].filter(item => item.value > 0)
-
-      setPriorityData(priorityChartData)
-    } catch (error) {
-      console.error('Failed to update task:', error)
-      toast.error('Failed to update task status')
-    } finally {
-      setIsUpdating(null)
-    }
   }
 
   const updateTaskStatus = async (taskId: number, newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED') => {
@@ -474,7 +431,7 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
             <p className="text-gray-600 mt-2">
-              Welcome back, {user?.first_name}! Here's your task overview.
+              Welcome back, {user?.first_name}! Here&apos;s your task overview.
             </p>
           </div>
 

@@ -51,7 +51,7 @@ class TaskApiClient {
         const errorText = await response.text()
         console.log('Tasks error text:', errorText)
         
-        let errorData: any
+        let errorData: { detail: string }
         try {
           errorData = JSON.parse(errorText)
         } catch {

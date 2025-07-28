@@ -2,7 +2,6 @@ import {
   LoginRequest, 
   RegisterRequest, 
   AuthResponse, 
-  RefreshTokenRequest, 
   RefreshTokenResponse,
   PasswordChangeRequest,
   User,

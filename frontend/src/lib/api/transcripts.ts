@@ -145,12 +145,12 @@ class TranscriptApiClient {
     transcriptId: number,
     myTeamOnly = false,
     statusFilter?: string
-  ): Promise<any[]> {
+  ): Promise<unknown[]> {
     const params = new URLSearchParams()
     if (myTeamOnly) params.append('my_team_only', 'true')
     if (statusFilter) params.append('status_filter', statusFilter)
 
-    return this.request<any[]>(`/transcripts/${transcriptId}/tasks?${params.toString()}`)
+    return this.request<unknown[]>(`/transcripts/${transcriptId}/tasks?${params.toString()}`)
   }
 }
 
@@ -232,7 +232,7 @@ export const transcriptsAPI = {
     transcriptId: number,
     myTeamOnly = false,
     statusFilter?: string
-  ): Promise<any[]> => {
+  ): Promise<unknown[]> => {
     return await transcriptApiClient.getTranscriptTasks(transcriptId, myTeamOnly, statusFilter)
   }
 }

@@ -8,10 +8,9 @@ import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { FileText, Upload, Download, Trash2, Loader2, Plus, Calendar, Brain, MessageSquare, AlertTriangle } from "lucide-react"
+import { FileText, Upload, Download, Trash2, Loader2, Plus, Calendar, Brain, MessageSquare } from "lucide-react"
 import { transcriptsAPI, Transcript } from "@/lib/api"
 
 export default function TranscriptsPage() {
@@ -20,9 +19,6 @@ export default function TranscriptsPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedTranscript, setSelectedTranscript] = useState<Transcript | null>(null)
-  const [showSentiment, setShowSentiment] = useState(false)
-  const [showSummary, setShowSummary] = useState(false)
 
   const loadTranscripts = async () => {
     try {
@@ -138,31 +134,6 @@ export default function TranscriptsPage() {
       console.error('Failed to delete transcript:', error)
       toast.error("Failed to delete transcript. Please try again.")
     }
-  }
-
-  const getSentimentBadge = (sentiment: string | null) => {
-    if (!sentiment) return null
-    
-    const sentimentLower = sentiment.toLowerCase()
-    let variant: "default" | "secondary" | "destructive" | "outline" = "outline"
-    let color = ""
-    
-    if (sentimentLower.includes('positive')) {
-      variant = "default"
-      color = "bg-green-100 text-green-800"
-    } else if (sentimentLower.includes('negative')) {
-      variant = "destructive" 
-      color = "bg-red-100 text-red-800"
-    } else if (sentimentLower.includes('neutral')) {
-      variant = "secondary"
-      color = "bg-gray-100 text-gray-800"
-    }
-    
-    return (
-      <Badge variant={variant} className={color}>
-        {sentiment}
-      </Badge>
-    )
   }
 
   return (

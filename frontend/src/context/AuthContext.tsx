@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { authAPI } from '@/lib/api'
-import { User } from '@/types/auth_types'
+import { User, Team } from '@/types/auth_types'
 import { toast } from 'sonner'
 
 interface AuthContextType {
@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const userData = await authAPI.getCurrentUser()
           setUser(userData)
         }
-      } catch (error) {
+      } catch {
         // Token is invalid, clear it
         authAPI.clearAuthData()
         setUser(null)
@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true)
-      const response = await authAPI.login({ email, password })
+      await authAPI.login({ email, password })
       
       // Get user data (tokens are stored in localStorage by authAPI.login)
       const userData = await authAPI.getCurrentUser()
@@ -89,12 +89,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   ) => {
     try {
       setIsLoading(true)
-      const response = await authAPI.register({
+      await authAPI.register({
         email,
         password,
         first_name: firstName,
         last_name: lastName,
-        team: team as any
+        team: team as Team
       })
       
       // Get user data (tokens are stored in localStorage by authAPI.register)

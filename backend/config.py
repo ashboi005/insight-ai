@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base
+from supabase import create_client, Client
 import logging
 
 #logger is added if needed to check if env variables are working or not
@@ -19,7 +20,31 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 30
 JWT_REFRESH_TOKEN_EXPIRE_DAYS = 7
+
+# Supabase for file storage only
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "insight-ai")
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+_supabase_storage_client = None
+
+def get_supabase_storage_client() -> Client:
+    """Get Supabase client for file storage operations only"""
+    global _supabase_storage_client
+    if _supabase_storage_client is None:
+        if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+            raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set for file storage")
+        
+        _supabase_storage_client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    
+    return _supabase_storage_client
+
+def get_supabase_storage():
+    """Get Supabase storage client for file operations"""
+    client = get_supabase_storage_client()
+    return client.storage
 
 if DATABASE_URL:
     sync_engine = create_engine(DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://"))    

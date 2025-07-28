@@ -11,3 +11,4 @@ python-dotenv==1.0.0
 google-generativeai==0.3.2
 mangum==0.17.0
 psycopg2-binary==2.9.9
+supabase==2.0.2

@@ -48,57 +48,87 @@ export default function DashboardPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [showRecentActivity, setShowRecentActivity] = useState(false)
   
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(0)
+  const [tasksPerPage] = useState(20)
+  const [hasMoreTasks, setHasMoreTasks] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  
   const { user } = useAuth()
 
-  const loadData = async () => {
+  const loadData = async (append: boolean = false) => {
     try {
-      setIsLoading(true)
+      if (!append) {
+        setIsLoading(true)
+        setCurrentPage(0)
+      } else {
+        setIsLoadingMore(true)
+      }
+      
+      const skip = append ? tasks.length : 0
       
       // Load recent tasks and analytics in parallel
       const [recentTasks, analytics] = await Promise.all([
-        tasksAPI.getAll({ limit: 50, myTeamOnly: false }),
-        tasksAPI.getAnalytics(false)
+        tasksAPI.getAll({ skip, limit: tasksPerPage, myTeamOnly: false }),
+        !append ? tasksAPI.getAnalytics(false) : Promise.resolve(null)
       ])
 
-      setTasks(recentTasks)
-
-      // Convert analytics to chart data
-      const chartData: AnalyticsData[] = [
-        { name: "Completed", value: analytics.overall_stats.completed_tasks, color: "#22c55e" },
-        { name: "In Progress", value: analytics.overall_stats.in_progress_tasks, color: "#3b82f6" },
-        { name: "Pending", value: analytics.overall_stats.pending_tasks, color: "#f59e0b" },
-      ].filter(item => item.value > 0) // Only show non-zero values
-
-      setAnalyticsData(chartData)
-
-      // Convert priority stats to bar chart data
-      const priorityChartData: PriorityData[] = [
-        { name: "High", value: analytics.overall_stats.high_priority, color: "#ef4444" },
-        { name: "Medium", value: analytics.overall_stats.medium_priority, color: "#f59e0b" },
-        { name: "Low", value: analytics.overall_stats.low_priority, color: "#22c55e" },
-      ].filter(item => item.value > 0)
-
-      setPriorityData(priorityChartData)
-
-      // Set team activity data
-      if (analytics.team_breakdown && analytics.team_breakdown.length > 0) {
-        const teamData = analytics.team_breakdown.map((team, index) => ({
-          name: team.team,
-          value: team.total_tasks,
-          color: `hsl(${index * 45}, 70%, 50%)`
-        }))
-        setTeamActivity(teamData)
+      // Check if there are more tasks to load
+      setHasMoreTasks(recentTasks.length === tasksPerPage)
+      
+      if (append) {
+        setTasks(prev => [...prev, ...recentTasks])
+      } else {
+        setTasks(recentTasks)
       }
 
-      // Set recent activity data
-      if (analytics.recent_activity && analytics.recent_activity.length > 0) {
-        setRecentActivity(analytics.recent_activity)
+      // Only update analytics on initial load
+      if (!append && analytics) {
+        // Convert analytics to chart data
+        const chartData: AnalyticsData[] = [
+          { name: "Completed", value: analytics.overall_stats.completed_tasks, color: "#22c55e" },
+          { name: "In Progress", value: analytics.overall_stats.in_progress_tasks, color: "#3b82f6" },
+          { name: "Pending", value: analytics.overall_stats.pending_tasks, color: "#f59e0b" },
+        ].filter(item => item.value > 0) // Only show non-zero values
+
+        setAnalyticsData(chartData)
+
+        // Convert priority stats to bar chart data
+        const priorityChartData: PriorityData[] = [
+          { name: "High", value: analytics.overall_stats.high_priority, color: "#ef4444" },
+          { name: "Medium", value: analytics.overall_stats.medium_priority, color: "#f59e0b" },
+          { name: "Low", value: analytics.overall_stats.low_priority, color: "#22c55e" },
+        ].filter(item => item.value > 0)
+
+        setPriorityData(priorityChartData)
+
+        // Set team activity data
+        if (analytics.team_breakdown && analytics.team_breakdown.length > 0) {
+          const teamData = analytics.team_breakdown.map((team, index) => ({
+            name: team.team,
+            value: team.total_tasks,
+            color: `hsl(${index * 45}, 70%, 50%)`
+          }))
+          setTeamActivity(teamData)
+        }
+
+        // Set recent activity data
+        if (analytics.recent_activity && analytics.recent_activity.length > 0) {
+          setRecentActivity(analytics.recent_activity)
+        }
       }
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
       toast.error('Failed to load dashboard data')
     } finally {
       setIsLoading(false)
+      setIsLoadingMore(false)
+    }
+  }
+
+  const loadMoreTasks = () => {
+    if (!isLoadingMore && hasMoreTasks) {
+      loadData(true)
     }
   }
 
@@ -500,7 +530,6 @@ export default function DashboardPage() {
                                 ))}
                               </Pie>
                               <Tooltip />
-                              <Legend />
                             </PieChart>
                           </ResponsiveContainer>
                         </div>
@@ -761,6 +790,34 @@ export default function DashboardPage() {
                           </Button>
                         </div>
                       ))
+                    )}
+                    
+                    {/* Load More Button */}
+                    {filteredTasks.length > 0 && hasMoreTasks && (
+                      <div className="flex justify-center pt-4">
+                        <Button 
+                          variant="outline" 
+                          onClick={loadMoreTasks}
+                          disabled={isLoadingMore}
+                        >
+                          {isLoadingMore ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Loading more tasks...
+                            </>
+                          ) : (
+                            `Load More Tasks (${tasks.length} loaded)`
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {/* Total count indicator */}
+                    {filteredTasks.length > 0 && (
+                      <div className="text-center pt-2 text-sm text-gray-500">
+                        Showing {filteredTasks.length} of {tasks.length} loaded tasks
+                        {!hasMoreTasks && " (all tasks loaded)"}
+                      </div>
                     )}
                   </div>
                 </CardContent>

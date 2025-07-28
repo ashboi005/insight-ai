@@ -14,6 +14,7 @@ interface AuthContextType {
   register: (email: string, password: string, firstName: string, lastName: string, team: string) => Promise<void>
   logout: () => void
   refreshToken: () => Promise<void>
+  updateUser: (profileData: { first_name: string; last_name: string; team: string }) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -129,6 +130,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
+  const updateUser = async (profileData: { first_name: string; last_name: string; team: string }) => {
+    try {
+      setIsLoading(true)
+      const updatedUser = await authAPI.updateProfile(profileData)
+      setUser(updatedUser)
+      toast.success('Profile updated successfully!')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Profile update failed'
+      toast.error(message)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -137,6 +153,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     refreshToken,
+    updateUser,
   }
 
   return (

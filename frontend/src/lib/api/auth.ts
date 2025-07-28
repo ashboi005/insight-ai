@@ -122,6 +122,13 @@ class ApiClient {
     })
   }
 
+  async updateProfile(profileData: { first_name: string; last_name: string; team: string }): Promise<User> {
+    return this.request<User>('/auth/me', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    })
+  }
+
   async logout(): Promise<{ message: string }> {
     return this.request<{ message: string }>('/auth/logout', {
       method: 'POST',
@@ -192,20 +199,21 @@ export const authAPI = {
   },
 
   /**
+   * Update user profile
+   */
+  updateProfile: async (profileData: { first_name: string; last_name: string; team: string }): Promise<User> => {
+    return await apiClient.updateProfile(profileData)
+  },
+
+  /**
    * Logout user and clear tokens
    */
   logout: async (): Promise<void> => {
-    try {
-      await apiClient.logout()
-    } catch (error) {
-      // Continue with logout even if API call fails
-      console.warn('Logout API call failed:', error)
-    } finally {
-      // Always clear local storage
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('refreshToken') 
-      localStorage.removeItem('userEmail')
-    }
+    // For localStorage-based auth, we just need to clear local data
+    // No backend call needed since tokens are stored client-side
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('refreshToken') 
+    localStorage.removeItem('userEmail')
   },
 
   /**

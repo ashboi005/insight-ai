@@ -8,9 +8,10 @@ import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { FileText, Upload, Download, Trash2, Loader2, Plus, Calendar } from "lucide-react"
+import { FileText, Upload, Download, Trash2, Loader2, Plus, Calendar, Brain, MessageSquare, AlertTriangle } from "lucide-react"
 import { transcriptsAPI, Transcript } from "@/lib/api"
 
 export default function TranscriptsPage() {
@@ -19,6 +20,9 @@ export default function TranscriptsPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedTranscript, setSelectedTranscript] = useState<Transcript | null>(null)
+  const [showSentiment, setShowSentiment] = useState(false)
+  const [showSummary, setShowSummary] = useState(false)
 
   const loadTranscripts = async () => {
     try {
@@ -109,18 +113,56 @@ export default function TranscriptsPage() {
   }
 
   const handleDelete = async (transcriptId: number) => {
-    if (!confirm('Are you sure you want to delete this transcript?')) {
+    // Find the transcript to get task count
+    const transcript = transcripts.find(t => t.id === transcriptId)
+    
+    // Custom confirmation dialog with warning about tasks
+    const confirmation = confirm(
+      `⚠️ DELETE TRANSCRIPT WARNING ⚠️\n\n` +
+      `This will permanently delete:\n` +
+      `• The transcript: "${transcript?.title || 'Unknown'}"\n` +
+      `• ALL TASKS generated from this transcript\n` +
+      `• This action CANNOT be undone\n\n` +
+      `Are you absolutely sure you want to continue?`
+    )
+    
+    if (!confirmation) {
       return
     }
 
     try {
       await transcriptsAPI.delete(transcriptId)
       await loadTranscripts()
-      toast.success("Transcript deleted successfully!")
+      toast.success("Transcript and all related tasks deleted successfully!")
     } catch (error) {
       console.error('Failed to delete transcript:', error)
       toast.error("Failed to delete transcript. Please try again.")
     }
+  }
+
+  const getSentimentBadge = (sentiment: string | null) => {
+    if (!sentiment) return null
+    
+    const sentimentLower = sentiment.toLowerCase()
+    let variant: "default" | "secondary" | "destructive" | "outline" = "outline"
+    let color = ""
+    
+    if (sentimentLower.includes('positive')) {
+      variant = "default"
+      color = "bg-green-100 text-green-800"
+    } else if (sentimentLower.includes('negative')) {
+      variant = "destructive" 
+      color = "bg-red-100 text-red-800"
+    } else if (sentimentLower.includes('neutral')) {
+      variant = "secondary"
+      color = "bg-gray-100 text-gray-800"
+    }
+    
+    return (
+      <Badge variant={variant} className={color}>
+        {sentiment}
+      </Badge>
+    )
   }
 
   return (
@@ -230,30 +272,107 @@ export default function TranscriptsPage() {
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="font-medium text-gray-900 mb-1">{transcript.title}</h3>
-                          <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-medium text-gray-900">{transcript.title}</h3>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                             {transcript.content.substring(0, 200)}
                             {transcript.content.length > 200 && "..."}
                           </p>
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(transcript.created_at).toLocaleDateString()}
                             </span>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2 ml-4">
-                          <Button variant="outline" size="sm" onClick={() => handleDownload(transcript.id)}>
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(transcript.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          
+                          {/* Action Buttons Row */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Dialog>
+                              <DialogTrigger>
+                                <Button variant="outline" size="sm">
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  View More
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl max-h-[80vh]">
+                                <DialogHeader>
+                                  <DialogTitle>{transcript.title}</DialogTitle>
+                                  <DialogDescription>
+                                    Full transcript content
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="mt-4 max-h-[60vh] overflow-y-auto">
+                                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                    {transcript.content}
+                                  </p>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                            
+                            <Button variant="outline" size="sm" onClick={() => handleDownload(transcript.id)}>
+                              <Download className="h-4 w-4 mr-1" />
+                              Download
+                            </Button>
+                            
+                            {transcript.sentiment && (
+                              <Dialog>
+                                <DialogTrigger>
+                                  <Button variant="outline" size="sm">
+                                    <Brain className="h-4 w-4 mr-1" />
+                                    Sentiment
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Sentiment Analysis</DialogTitle>
+                                    <DialogDescription>
+                                      AI-generated sentiment analysis of the transcript
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <div className="mt-4">
+                                    <p className="text-sm text-gray-700 leading-relaxed">
+                                      {transcript.sentiment}
+                                    </p>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                            )}
+                            
+                            {transcript.summary && (
+                              <Dialog>
+                                <DialogTrigger>
+                                  <Button variant="outline" size="sm">
+                                    <MessageSquare className="h-4 w-4 mr-1" />
+                                    Summary
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Transcript Summary</DialogTitle>
+                                    <DialogDescription>
+                                      AI-generated summary of the key points
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <div className="mt-4">
+                                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                      {transcript.summary}
+                                    </p>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                            )}
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDelete(transcript.id)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>

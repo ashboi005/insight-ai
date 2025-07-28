@@ -5,8 +5,9 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, FileText, LogOut, Menu, X, User } from "lucide-react"
+import { LayoutDashboard, FileText, LogOut, Menu, X, User, Settings } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
+import UserProfile from "@/components/UserProfile"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -15,6 +16,7 @@ const navigation = [
 
 export default function Sidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [showProfileModal, setShowProfileModal] = useState(false)
   const pathname = usePathname()
   const { user, logout } = useAuth()
 
@@ -93,13 +95,32 @@ export default function Sidebar() {
                 )}
               </div>
             </div>
-            <Button variant="outline" size="sm" className="w-full bg-transparent" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
+            <div className="space-y-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full bg-transparent" 
+                onClick={() => setShowProfileModal(true)}
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Profile Settings
+              </Button>
+              <Button variant="outline" size="sm" className="w-full bg-transparent" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* User Profile Modal */}
+      {showProfileModal && (
+        <UserProfile 
+          open={showProfileModal} 
+          onOpenChange={setShowProfileModal} 
+        />
+      )}
     </>
   )
 }

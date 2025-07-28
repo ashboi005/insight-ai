@@ -48,11 +48,18 @@ class TaskApiClient {
       console.log('Tasks response ok:', response.ok)
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          detail: 'An unexpected error occurred'
-        }))
+        const errorText = await response.text()
+        console.log('Tasks error text:', errorText)
+        
+        let errorData: any
+        try {
+          errorData = JSON.parse(errorText)
+        } catch {
+          errorData = { detail: errorText || 'An unexpected error occurred' }
+        }
+        
         console.log('Tasks error data:', errorData)
-        throw new Error(errorData.detail || `HTTP ${response.status}`)
+        throw new Error(JSON.stringify(errorData) || `HTTP ${response.status}`)
       }
 
       const data = await response.json()
@@ -166,8 +173,15 @@ export const tasksAPI = {
    * Toggle task completion status
    */
   toggleComplete: async (id: number, currentStatus: string): Promise<Task> => {
-    const newStatus = currentStatus === 'completed' ? 'todo' : 'completed'
+    const newStatus = currentStatus === 'COMPLETED' ? 'PENDING' : 'COMPLETED'
     return await taskApiClient.updateTask(id, { status: newStatus })
+  },
+
+  /**
+   * Update task status to specific value
+   */
+  updateStatus: async (id: number, status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'): Promise<Task> => {
+    return await taskApiClient.updateTask(id, { status })
   },
 
   /**

@@ -3,8 +3,8 @@ export interface Task {
   id: number
   title: string
   description: string
-  status: 'todo' | 'in_progress' | 'completed'
-  priority: 'high' | 'medium' | 'low'
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'
+  priority: 'HIGH' | 'MEDIUM' | 'LOW'
   assigned_team: string
   tags?: string
   transcript_id: number
@@ -15,8 +15,8 @@ export interface Task {
 export interface TaskUpdate {
   title?: string
   description?: string
-  status?: 'todo' | 'in_progress' | 'completed'
-  priority?: 'high' | 'medium' | 'low'
+  status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'
+  priority?: 'HIGH' | 'MEDIUM' | 'LOW'
   assigned_team?: string
   tags?: string
 }

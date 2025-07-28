@@ -13,6 +13,7 @@ class UserRole(enum.Enum):
 
 class TaskStatus(enum.Enum):
     PENDING = "pending"
+    IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
 
 class TaskPriority(enum.Enum):

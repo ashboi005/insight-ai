@@ -148,7 +148,7 @@ async def get_task_analytics(
         total_tasks_query = total_tasks_query.where(and_(*base_filter))
     
     completed_tasks_query = select(func.count(Task.id)).where(Task.status == TaskStatus.COMPLETED)
-    pending_tasks_query = select(func.count(Task.id)).where(Task.status == TaskStatus.TODO)
+    pending_tasks_query = select(func.count(Task.id)).where(Task.status == TaskStatus.PENDING)
     in_progress_tasks_query = select(func.count(Task.id)).where(Task.status == TaskStatus.IN_PROGRESS)
     
     high_priority_query = select(func.count(Task.id)).where(Task.priority == TaskPriority.HIGH)

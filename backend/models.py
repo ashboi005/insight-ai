@@ -12,14 +12,14 @@ class UserRole(enum.Enum):
     ADMIN = "admin"
 
 class TaskStatus(enum.Enum):
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS" 
+    COMPLETED = "COMPLETED"
 
 class TaskPriority(enum.Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
 
 class Team(enum.Enum):
     SALES = "Sales"

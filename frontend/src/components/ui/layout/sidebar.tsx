@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { LayoutDashboard, FileText, LogOut, Menu, X, User } from "lucide-react"
-import { toast } from "sonner"
+import { useAuth } from "@/context/AuthContext"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -15,22 +15,12 @@ const navigation = [
 
 export default function Sidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [userEmail, setUserEmail] = useState("")
   const pathname = usePathname()
-  const router = useRouter()
-
-  useEffect(() => {
-    const email = localStorage.getItem("userEmail")
-    if (email) {
-      setUserEmail(email)
-    }
-  }, [])
+  const { user, logout } = useAuth()
 
   const handleLogout = () => {
-    localStorage.removeItem("authToken")
-    localStorage.removeItem("userEmail")
-    toast.success("You have been successfully logged out.")
-    router.push("/login")
+    logout()
+    setIsMobileMenuOpen(false)
   }
 
   return (
@@ -93,7 +83,14 @@ export default function Sidebar() {
                 <User className="h-4 w-4 text-gray-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{userEmail}</p>
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {user ? `${user.first_name} ${user.last_name}` : 'User'}
+                </p>
+                {user && (
+                  <p className="text-xs text-gray-500 truncate">
+                    {user.email} • {user.team}
+                  </p>
+                )}
               </div>
             </div>
             <Button variant="outline" size="sm" className="w-full bg-transparent" onClick={handleLogout}>

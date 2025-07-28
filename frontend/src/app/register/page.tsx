@@ -3,43 +3,50 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import { useAuth } from "@/context/AuthContext"
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [team, setTeam] = useState("")
+  const { register, isLoading } = useAuth()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validation
+    if (!email || !password || !confirmPassword || !firstName || !lastName || !team) {
+      toast.error("Please fill in all fields")
+      return
+    }
 
     if (password !== confirmPassword) {
       toast.error("Passwords do not match. Please try again.")
       return
     }
 
-    setIsLoading(true)
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters long")
+      return
+    }
 
     try {
-      // Mock API call - replace with actual registration
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      toast.success("Your account has been created. Please log in.")
-
-      router.push("/login")
+      await register(email, password, firstName, lastName, team)
+      // Success handled in auth context
     } catch (error) {
-      toast.error("Something went wrong. Please try again.")
-    } finally {
-      setIsLoading(false)
+      // Error handled in auth context
+      console.error('Registration error:', error)
     }
   }
 
@@ -58,6 +65,32 @@ export default function RegisterPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleRegister} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    placeholder="Enter your first name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="Enter your last name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -68,6 +101,25 @@ export default function RegisterPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="team">Team</Label>
+                <Select value={team} onValueChange={setTeam} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your team" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Devs">Devs</SelectItem>
+                    <SelectItem value="Product">Product</SelectItem>
+                    <SelectItem value="Marketing">Marketing</SelectItem>
+                    <SelectItem value="Sales">Sales</SelectItem>
+                    <SelectItem value="Design">Design</SelectItem>
+                    <SelectItem value="HR">HR</SelectItem>
+                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="Operations">Operations</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">

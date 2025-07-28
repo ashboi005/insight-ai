@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,32 +10,27 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import { useAuth } from "@/context/AuthContext"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+  const { login, isLoading } = useAuth()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+
+    if (!email || !password) {
+      toast.error("Please fill in all fields")
+      return
+    }
 
     try {
-      // Mock API call - replace with actual authentication
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Store auth token (mock)
-      localStorage.setItem("authToken", "mock-token")
-      localStorage.setItem("userEmail", email)
-
-      toast.success("Welcome to InsightBoard AI!")
-
-      router.push("/dashboard")
+      await login(email, password)
+      // Success handled in auth context
     } catch (error) {
-      toast.error("Please check your credentials and try again.")
-    } finally {
-      setIsLoading(false)
+      // Error handled in auth context
+      console.error('Login error:', error)
     }
   }
 

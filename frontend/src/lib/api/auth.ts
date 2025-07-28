@@ -21,7 +21,8 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string, 
-    options: RequestInit = {}
+    options: RequestInit = {},
+    isRetry: boolean = false
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`
     
@@ -33,8 +34,8 @@ class ApiClient {
       ...options,
     }
 
-    // Add JWT token from localStorage as Authorization header (except for login/register)
-    if (!endpoint.includes('/auth/login') && !endpoint.includes('/auth/register')) {
+    // Add JWT token from localStorage as Authorization header (except for login/register/refresh)
+    if (!endpoint.includes('/auth/login') && !endpoint.includes('/auth/register') && !endpoint.includes('/auth/refresh')) {
       const token = localStorage.getItem('authToken')
       if (token) {
         config.headers = {
@@ -55,6 +56,33 @@ class ApiClient {
       
       console.log('Response status:', response.status)
       console.log('Response ok:', response.ok)
+      
+      // Handle 401 Unauthorized - try to refresh token
+      if (response.status === 401 && !isRetry && !endpoint.includes('/auth/')) {
+        console.log('Token expired, attempting refresh...')
+        try {
+          const refreshToken = localStorage.getItem('refreshToken')
+          if (refreshToken) {
+            const refreshResponse = await this.request<RefreshTokenResponse>('/auth/refresh', {
+              method: 'POST',
+              body: JSON.stringify({ refresh_token: refreshToken }),
+            }, true)
+            
+            // Update the access token
+            localStorage.setItem('authToken', refreshResponse.access_token)
+            
+            // Retry the original request with new token
+            return this.request<T>(endpoint, options, true)
+          }
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError)
+          // Clear tokens and redirect to login
+          localStorage.removeItem('authToken')
+          localStorage.removeItem('refreshToken')
+          window.location.href = '/auth/login'
+          throw new Error('Session expired. Please login again.')
+        }
+      }
       
       if (!response.ok) {
         const errorData: AuthError = await response.json().catch(() => ({
@@ -230,6 +258,41 @@ export const authAPI = {
     localStorage.removeItem('authToken')
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('userEmail')
+  },
+
+  /**
+   * Check if token is about to expire (within 5 minutes)
+   */
+  isTokenExpiringSoon: (): boolean => {
+    const token = localStorage.getItem('authToken')
+    if (!token) return false
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      const expirationTime = payload.exp * 1000 // Convert to milliseconds
+      const currentTime = Date.now()
+      const timeUntilExpiry = expirationTime - currentTime
+      
+      // Return true if token expires within 5 minutes (300000 ms)
+      return timeUntilExpiry < 300000 && timeUntilExpiry > 0
+    } catch {
+      return false
+    }
+  },
+
+  /**
+   * Get token expiration time
+   */
+  getTokenExpirationTime: (): number | null => {
+    const token = localStorage.getItem('authToken')
+    if (!token) return null
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      return payload.exp * 1000 // Convert to milliseconds
+    } catch {
+      return null
+    }
   }
 }
 

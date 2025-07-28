@@ -35,6 +35,8 @@ MEETING TITLE: {transcript_title}
 MEETING TRANSCRIPT:
 {transcript_content}
 
+IMPORTANT: Analyze the transcript carefully and extract REAL, SPECIFIC actionable tasks from the content. Do NOT create generic tasks like "Review meeting transcript" unless that's actually mentioned in the meeting.
+
 Please perform THREE tasks:
 
 **TASK 1: GENERATE SUMMARY**
@@ -54,6 +56,8 @@ Extract actionable tasks from the meeting. For each task:
 4. **Team Assignment**: Assign to the most appropriate team from: {teams_str}
 5. **Tags**: Add relevant tags (optional, comma-separated)
 
+CRITICAL: Only extract tasks that are explicitly mentioned or clearly implied in the transcript. If no specific actionable tasks are discussed, return an empty tasks array.
+
 **TASK 3: SENTIMENT ANALYSIS**
 Analyze the overall sentiment and tone of the meeting. Consider:
 - Overall mood (positive, neutral, negative)
@@ -65,28 +69,28 @@ Analyze the overall sentiment and tone of the meeting. Consider:
 Provide a brief sentiment summary (2-3 sentences) with an overall sentiment classification: "positive", "neutral", or "negative".
 
 **Team Assignment Guidelines:**
-- @Sales: Revenue, deals, client relationships, sales targets
-- @Devs: Technical development, coding, infrastructure, bugs
-- @Marketing: Campaigns, content, branding, social media
-- @Design: UI/UX, graphics, visual design, prototypes  
-- @Operations: Process improvement, logistics, day-to-day operations
-- @Finance: Budget, financial planning, cost analysis
-- @HR: Hiring, employee relations, training, policies
-- @General: Cross-functional, administrative, or unclear assignments
+- Sales: Revenue, deals, client relationships, sales targets
+- Devs: Technical development, coding, infrastructure, bugs
+- Marketing: Campaigns, content, branding, social media
+- Design: UI/UX, graphics, visual design, prototypes  
+- Operations: Process improvement, logistics, day-to-day operations
+- Finance: Budget, financial planning, cost analysis
+- HR: Hiring, employee relations, training, policies
+- General: Cross-functional, administrative, or unclear assignments
 
 **Priority Guidelines:**
-- High: Urgent, blocking, deadline-driven, critical business impact
-- Medium: Important but not urgent, planned work
-- Low: Nice to have, future considerations, minor improvements
+- high: Urgent, blocking, deadline-driven, critical business impact
+- medium: Important but not urgent, planned work
+- low: Nice to have, future considerations, minor improvements
 
-Return your response in this EXACT JSON format:
+Return your response in this EXACT JSON format (no additional text before or after):
 {{
   "summary": "Your detailed meeting summary here...",
   "sentiment": "Your sentiment analysis summary here with classification: positive/neutral/negative",
   "tasks": [
     {{
-      "title": "Task title here",
-      "description": "Detailed description of the task",
+      "title": "Specific task title from the meeting",
+      "description": "Detailed description of what needs to be done based on the transcript",
       "priority": "high|medium|low",
       "assigned_team": "Sales|Devs|Marketing|Design|Operations|Finance|HR|General",
       "tags": "optional, comma, separated, tags"
@@ -94,60 +98,85 @@ Return your response in this EXACT JSON format:
   ]
 }}
 
-Make sure to:
-- Create a comprehensive but concise summary
-- Provide thoughtful sentiment analysis
-- Extract only actionable items (not just discussion points)
-- Be specific and clear in task descriptions
-- Assign appropriate teams based on task content
-- Return valid JSON format
-- Include at least 3-5 tasks if the transcript contains that much actionable content
+REMEMBER: 
+- Only extract tasks that are actually discussed in the meeting
+- Be specific and detailed in descriptions
+- If no actionable tasks are mentioned, return an empty tasks array []
+- Return ONLY the JSON object, no additional text
+- Ensure valid JSON format
 """
 
     try:
+        logger.info(f"Starting AI processing for transcript: {transcript_title}")
         response = model.generate_content(prompt)
         
         if not response.text:
+            logger.error("Empty response from Gemini AI")
             raise Exception("Empty response from Gemini AI")
+        
+        logger.info(f"AI Response received, length: {len(response.text)}")
+        logger.debug(f"Raw AI Response: {response.text[:500]}...")  # Log first 500 chars
         
         response_text = response.text.strip()
         json_start = response_text.find('{')
         json_end = response_text.rfind('}') + 1
         
         if json_start == -1 or json_end == 0:
+            logger.error(f"No JSON object found in AI response. Response: {response.text}")
             raise Exception("No JSON object found in AI response")
         
         json_text = response_text[json_start:json_end]
+        logger.debug(f"Extracted JSON: {json_text}")
+        
         result_data = json.loads(json_text)
         summary = result_data.get('summary', 'No summary generated')
         sentiment = result_data.get('sentiment', 'No sentiment analysis available')
         tasks_data = result_data.get('tasks', [])
+        
+        logger.info(f"AI returned {len(tasks_data)} tasks")
+        
         tasks = []
         
-        for task_data in tasks_data:
+        for i, task_data in enumerate(tasks_data):
             try:
+                logger.debug(f"Processing task {i+1}: {task_data}")
+                
                 team_value = task_data.get('assigned_team', 'General')
                 if team_value not in [team.value for team in Team]:
+                    logger.warning(f"Invalid team '{team_value}', defaulting to 'General'")
                     team_value = 'General'
                 
                 priority_value = task_data.get('priority', 'medium').lower()
                 if priority_value not in ['high', 'medium', 'low']:
+                    logger.warning(f"Invalid priority '{priority_value}', defaulting to 'medium'")
                     priority_value = 'medium'
+                
+                # Convert lowercase priority to enum
+                priority_map = {
+                    'high': TaskPriority.HIGH,
+                    'medium': TaskPriority.MEDIUM,
+                    'low': TaskPriority.LOW
+                }
                 
                 task = AIGeneratedTask(
                     title=task_data.get('title', 'Untitled Task')[:255],  # Truncate if too long
                     description=task_data.get('description', ''),
-                    priority=TaskPriority(priority_value),
+                    priority=priority_map[priority_value],
                     assigned_team=Team(team_value),
                     tags=task_data.get('tags', '')
                 )
                 tasks.append(task)
+                logger.debug(f"Successfully created task: {task.title}")
                 
             except Exception as e:
                 logger.error(f"Error processing task data: {task_data}, Error: {e}")
                 continue
         
+        logger.info(f"Successfully processed {len(tasks)} out of {len(tasks_data)} AI-generated tasks")
+        
+        # Only add fallback task if NO tasks were successfully created
         if not tasks:
+            logger.warning("No valid tasks were created, adding fallback task")
             tasks.append(AIGeneratedTask(
                 title="Review meeting transcript",
                 description=f"Review and follow up on items discussed in: {transcript_title}",
@@ -156,7 +185,7 @@ Make sure to:
                 tags="review, follow-up"
             ))
         
-        logger.info(f"Successfully extracted {len(tasks)} tasks, summary, and sentiment from transcript")
+        logger.info(f"Final result: {len(tasks)} tasks, summary length: {len(summary)}, sentiment: {sentiment[:50]}...")
         return tasks, summary, sentiment
         
     except json.JSONDecodeError as e:

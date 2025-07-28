@@ -60,6 +60,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth()
   }, [])
 
+  // Set up periodic token refresh (every 50 minutes)
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout
+
+    if (user) {
+      intervalId = setInterval(async () => {
+        try {
+          const refreshToken = localStorage.getItem('refreshToken')
+          if (refreshToken) {
+            console.log('Performing periodic token refresh...')
+            await authAPI.refreshToken()
+            console.log('Token refreshed successfully')
+          }
+        } catch (error) {
+          console.error('Periodic token refresh failed:', error)
+          // Don't logout on periodic refresh failure, just log the error
+          // The API will handle this when the next request fails
+        }
+      }, 50 * 60 * 1000) // 50 minutes
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId)
+      }
+    }
+  }, [user])
+
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true)

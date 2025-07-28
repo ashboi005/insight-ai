@@ -38,6 +38,7 @@ export default function DashboardPage() {
   const [showTeamActivity, setShowTeamActivity] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
+  const [totalTasksCount, setTotalTasksCount] = useState(0)
   
   // Filter and sort states
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -55,7 +56,7 @@ export default function DashboardPage() {
   
   const { user } = useAuth()
 
-  const loadData = useCallback(async (append: boolean = false) => {
+  const loadData = useCallback(async (append: boolean = false, currentTasksLength: number = 0) => {
     try {
       if (!append) {
         setIsLoading(true)
@@ -63,7 +64,8 @@ export default function DashboardPage() {
         setIsLoadingMore(true)
       }
       
-      const skip = append ? tasks.length : 0
+      const skip = append ? currentTasksLength : 0
+      console.log(`Loading tasks: append=${append}, skip=${skip}, limit=${tasksPerPage}, currentLength=${currentTasksLength}`)
       
       // Load recent tasks and analytics in parallel
       const [recentTasks, analytics] = await Promise.all([
@@ -71,17 +73,33 @@ export default function DashboardPage() {
         !append ? tasksAPI.getAnalytics(false) : Promise.resolve(null)
       ])
 
+      console.log(`Received ${recentTasks.length} tasks`)
+      
       // Check if there are more tasks to load
       setHasMoreTasks(recentTasks.length === tasksPerPage)
+      console.log(`Has more tasks: ${recentTasks.length === tasksPerPage}`)
       
       if (append) {
-        setTasks(prev => [...prev, ...recentTasks])
+        setTasks(prev => {
+          const newTasks = [...prev, ...recentTasks]
+          console.log(`Total tasks after append: ${newTasks.length}`)
+          return newTasks
+        })
       } else {
         setTasks(recentTasks)
+        console.log(`Initial load: ${recentTasks.length} tasks`)
       }
 
       // Only update analytics on initial load
       if (!append && analytics) {
+        console.log('Analytics data:', analytics)
+        
+        // Calculate total tasks from analytics
+        const totalTasks = analytics.overall_stats.completed_tasks + 
+                          analytics.overall_stats.in_progress_tasks + 
+                          analytics.overall_stats.pending_tasks
+        setTotalTasksCount(totalTasks)
+        
         // Convert analytics to chart data
         const chartData: AnalyticsData[] = [
           { name: "Completed", value: analytics.overall_stats.completed_tasks, color: "#22c55e" },
@@ -122,17 +140,17 @@ export default function DashboardPage() {
       setIsLoading(false)
       setIsLoadingMore(false)
     }
-  }, [tasks.length, tasksPerPage])
+  }, [tasksPerPage])
 
   const loadMoreTasks = () => {
     if (!isLoadingMore && hasMoreTasks) {
-      loadData(true)
+      loadData(true, tasks.length)
     }
   }
 
   useEffect(() => {
     loadData()
-  }, [loadData])
+  }, [])
 
   // Filter and sort tasks whenever filters change
   useEffect(() => {
@@ -672,9 +690,13 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="flex justify-between items-center mt-4">
-                    <p className="text-sm text-gray-600">
-                      Showing {filteredTasks.length} of {tasks.length} tasks
-                    </p>
+                         {/* Total count indicator */}
+                    {filteredTasks.length > 0 && (
+                      <div className="text-center pt-2 text-sm text-gray-500">
+                        Showing {filteredTasks.length} filtered tasks out of {tasks.length} loaded tasks
+                        {!hasMoreTasks && " (all tasks loaded)"}
+                      </div>
+                    )}
                     <Button variant="outline" size="sm" onClick={clearFilters}>
                       Clear Filters
                     </Button>
@@ -685,10 +707,33 @@ export default function DashboardPage() {
               {/* Task List Card */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Activity className="mr-2 h-5 w-5 text-blue-500" />
-                    Tasks ({filteredTasks.length})
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Activity className="mr-2 h-5 w-5 text-blue-500" />
+                      <CardTitle>Tasks ({filteredTasks.length})</CardTitle>
+                    </div>
+                     <p className="text-sm text-gray-600">
+                      Showing {filteredTasks.length} of {totalTasksCount > 0 ? totalTasksCount : tasks.length} tasks
+                    </p>
+                    {/* Load More Button - Top Position */}
+                    {filteredTasks.length > 0 && hasMoreTasks && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={loadMoreTasks}
+                        disabled={isLoadingMore}
+                      >
+                        {isLoadingMore ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Loading...
+                          </>
+                        ) : (
+                          `Load More (${tasks.length} loaded)`
+                        )}
+                      </Button>
+                    )}
+                  </div>
                   <CardDescription>Your filtered and sorted tasks</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -749,33 +794,6 @@ export default function DashboardPage() {
                       ))
                     )}
                     
-                    {/* Load More Button */}
-                    {filteredTasks.length > 0 && hasMoreTasks && (
-                      <div className="flex justify-center pt-4">
-                        <Button 
-                          variant="outline" 
-                          onClick={loadMoreTasks}
-                          disabled={isLoadingMore}
-                        >
-                          {isLoadingMore ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Loading more tasks...
-                            </>
-                          ) : (
-                            `Load More Tasks (${tasks.length} loaded)`
-                          )}
-                        </Button>
-                      </div>
-                    )}
-                    
-                    {/* Total count indicator */}
-                    {filteredTasks.length > 0 && (
-                      <div className="text-center pt-2 text-sm text-gray-500">
-                        Showing {filteredTasks.length} of {tasks.length} loaded tasks
-                        {!hasMoreTasks && " (all tasks loaded)"}
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>

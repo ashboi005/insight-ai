@@ -46,20 +46,21 @@ export default function TranscriptsPage() {
     setIsGenerating(true)
 
     try {
-      // First create the transcript
-      const newTranscript = await transcriptsAPI.create({
+      // Create the transcript with the current text content
+      // This will handle both manual entry and edited file content
+      await transcriptsAPI.create({
         title: `Meeting Transcript - ${new Date().toLocaleDateString()}`,
         content: transcriptText,
       })
 
-      // Then generate tasks from the transcript
-      const tasksResponse = await transcriptsAPI.generateTasks(newTranscript.id)
+      // The create route automatically generates tasks, summary, and sentiment
+      // No need to call generateTasks separately
 
       // Reload transcripts to get updated data
       await loadTranscripts()
       setTranscriptText("")
 
-      toast.success(`Generated ${tasksResponse.tasks.length} tasks from your transcript.`)
+      toast.success(`Transcript processed, Tasks have been generated successfully! Please navigate to your dashboard.`)
     } catch (error) {
       console.error('Failed to generate tasks:', error)
       toast.error("Something went wrong. Please try again.")
@@ -72,6 +73,13 @@ export default function TranscriptsPage() {
     const file = event.target.files?.[0]
     if (!file) return
 
+    // Check file type
+    if (!file.name.endsWith('.txt')) {
+      toast.error("Only .txt files are supported. Please convert your file to .txt format first.")
+      event.target.value = ""
+      return
+    }
+
     setIsUploading(true)
 
     try {
@@ -79,8 +87,8 @@ export default function TranscriptsPage() {
       const reader = new FileReader()
       reader.onload = (e) => {
         const content = e.target?.result as string
-        setTranscriptText(content) // Put the extracted text in the form field
-        toast.success("File content loaded! You can now edit it and generate tasks.")
+        setTranscriptText(content) // Put the extracted text in the form field for editing
+        toast.success("File content loaded! You can now edit it and click 'Create Transcript & Generate Tasks' when ready.")
       }
       
       reader.onerror = () => {
@@ -155,7 +163,7 @@ export default function TranscriptsPage() {
                 Add New Transcript
               </CardTitle>
               <CardDescription>
-                Enter transcript text manually or load a file to edit the content, then generate tasks.
+                Enter transcript text manually or load a file to edit the content, then click &quot;Generate Tasks&quot; to create the transcript and automatically generate AI tasks.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -173,17 +181,27 @@ export default function TranscriptsPage() {
                 />
               </div>
 
+              {/* Info box explaining the flow */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-start">
+                  <Brain className="h-4 w-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
+                  <div className="text-sm text-blue-800">
+                    <strong>How it works:</strong> Type or paste your transcript content above, or click &quot;Load File Content&quot; to extract text from a file. Once you&apos;re happy with the content, click &quot;Create Transcript &amp; Generate Tasks&quot; to save it and automatically generate AI-powered tasks, summary, and sentiment analysis.
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center gap-4">
                 <Button onClick={handleGenerateTasks} disabled={isGenerating || !transcriptText.trim()}>
                   {isGenerating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating Tasks...
+                      Creating Transcript & Generating Tasks...
                     </>
                   ) : (
                     <>
                       <Plus className="mr-2 h-4 w-4" />
-                      Generate Tasks
+                      Create Transcript & Generate Tasks
                     </>
                   )}
                 </Button>
@@ -191,7 +209,7 @@ export default function TranscriptsPage() {
                 <div className="relative">
                   <input
                     type="file"
-                    accept=".txt,.doc,.docx"
+                    accept=".txt"
                     onChange={handleFileUpload}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     disabled={isUploading}
@@ -205,7 +223,7 @@ export default function TranscriptsPage() {
                     ) : (
                       <>
                         <Upload className="mr-2 h-4 w-4" />
-                        Load File
+                        Load File Content
                       </>
                     )}
                   </Button>

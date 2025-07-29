@@ -150,7 +150,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [loadData])
 
   // Filter and sort tasks whenever filters change
   useEffect(() => {

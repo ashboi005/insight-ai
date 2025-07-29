@@ -100,7 +100,7 @@ Extract actionable tasks from the meeting. Follow this EXACT process:
 
 STEP 1: Identify all unique action items mentioned in the transcript
 STEP 2: Group similar or related actions together 
-STEP 3: Create ONE consolidated task per group
+STEP 3: Create Unique tasks based on the grouped actions
 
 For each final task:
 1. **Title**: Create a clear, actionable title (max 100 characters)
@@ -112,13 +112,11 @@ For each final task:
 **MANDATORY DEDUPLICATION RULES:**
 - NEVER create separate tasks for the same underlying action
 - If multiple people mention the same task, create only ONE task
-- If a task has multiple subtasks, combine them into ONE comprehensive task
 - Examples of what NOT to do:
   * "Set up Office Network" and "Finalize Office Network Setup" (SAME TASK)
   * "Order New Hardware" and "Order New Hardware for Design Team" (SAME TASK)
   * "Update Employee Records with new Additions" and "Update Employee Records and send FAQ" (SAME TASK)
-- Before finalizing, ask yourself: "Could any two tasks be combined or are they redundant?"
-- Maximum 5-7 tasks total - consolidate aggressively
+- Before finalizing, ask yourself: "Are any two tasks similar or redundant?"
 
 **TASK 3: SENTIMENT ANALYSIS**
 Analyze the overall sentiment and tone of the meeting. Consider:
@@ -150,7 +148,6 @@ Provide a brief sentiment summary (2-3 sentences) with an overall sentiment clas
 - No two tasks accomplish the same goal
 - Tasks are actionable and have clear deliverables
 - Descriptions are comprehensive but not repetitive
-- Similar discussions are consolidated into single tasks
 
 Return your response in this EXACT JSON format:
 {{
@@ -174,7 +171,7 @@ Make sure to:
 - Be specific and clear in task descriptions
 - Assign appropriate teams based on task content
 - Return valid JSON format
-- Include 3-7 UNIQUE tasks maximum - prioritize consolidation over quantity
+- Try to Include as many Unique tasks as possible but while following the deduplication rule and avoiding very similar tasks
 - FINAL CHECK: Review each task and eliminate any that are similar or redundant
 - Each task must have a clearly distinct purpose and deliverable
 """
@@ -209,7 +206,6 @@ Make sure to:
                 if priority_value not in ['high', 'medium', 'low']:
                     priority_value = 'medium'
                 
-                # Convert to uppercase to match TaskPriority enum values
                 priority_value = priority_value.upper()
                 
                 task = AIGeneratedTask(
@@ -225,7 +221,6 @@ Make sure to:
                 logger.error(f"Error processing task data: {task_data}, Error: {e}")
                 continue
         
-        # Apply deduplication to remove similar tasks
         original_count = len(tasks)
         tasks = deduplicate_tasks(tasks)
         if len(tasks) < original_count:

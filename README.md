@@ -145,7 +145,7 @@ npm run dev
 
 - **AWS Lambda:** Deploy with AWS SAM (`sam build && sam deploy`)
 - **Supabase:** Used for file storage (transcript files)
-- **PostgreSQL:** Managed DB (e.g., AWS RDS, Supabase, or local)
+- **PostgreSQL:** Managed DB (Supabase)
 - **Environment Variables:** Managed via `.env` locally and Lambda environment in production (set using samconfig.toml and template.yaml)
 
 ### Frontend

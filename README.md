@@ -34,7 +34,7 @@ Tasks get assigned Priority and Team.
 
 ## Hosted App
 
-- **Frontend:** [https://insight-board-ai.vercel.app/](https://insightboard-ai.vercel.app/) (replace with your actual link)
+- **Frontend:** [https://insight-board-ai.vercel.app/](https://insight-board-ai.vercel.app/) (replace with your actual link)
 - **Backend:** [https://dgyy7el5y9.execute-api.ap-south-1.amazonaws.com/Prod](https://dgyy7el5y9.execute-api.ap-south-1.amazonaws.com/Prod) (AWS Lambda, FastAPI)
 
 ---

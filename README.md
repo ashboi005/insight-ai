@@ -93,7 +93,11 @@ alembic upgrade head
 uvicorn main:app --reload
 ```
 
-- API docs: [http://localhost:8000/apidocs](http://localhost:8000/apidocs)
+- Swagger API docs: [http://localhost:8000/apidocs](http://localhost:8000/apidocs)
+
+- Spotlight UI API docs: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+- Redoc API docs: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
 ### 3. Frontend Setup
 
@@ -142,7 +146,7 @@ npm run dev
 - **AWS Lambda:** Deploy with AWS SAM (`sam build && sam deploy`)
 - **Supabase:** Used for file storage (transcript files)
 - **PostgreSQL:** Managed DB (e.g., AWS RDS, Supabase, or local)
-- **Environment Variables:** Managed via `.env` locally and Lambda environment in production
+- **Environment Variables:** Managed via `.env` locally and Lambda environment in production (set using samconfig.toml and template.yaml)
 
 ### Frontend
 
@@ -160,15 +164,6 @@ npm run dev
   - Clone and run the backend locally.
   - Set your own valid `GEMINI_API_KEY` in `.env`.
   - Restart the backend and try again.
-
----
-
-## Useful Links
-
-- [Google Gemini API](https://aistudio.google.com/app/apikey)
-- [Supabase](https://supabase.com/)
-- [FastAPI Docs](https://fastapi.tiangolo.com/)
-- [Next.js Docs](https://nextjs.org/docs)
 
 ---
 

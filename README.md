@@ -167,6 +167,4 @@ npm run dev
 
 ---
 
-## Contact
 
-For issues or questions, please open an issue on the repository or

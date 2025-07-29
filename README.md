@@ -1,6 +1,7 @@
 # InsightBoard AI Dashboard
 
-A smart dashboard for meeting transcripts and AI-generated action items.
+A smart dashboard for uploading meeting transcripts and geenrating AI-generated action items based on them.
+Tasks get assigned Priority and Team.
 
 ---
 
@@ -17,9 +18,9 @@ A smart dashboard for meeting transcripts and AI-generated action items.
 
 ### Frontend
 - **Framework:** Next.js (React, TypeScript, App Router)
-- **UI:** Tailwind CSS, Shadcn/ui, Recharts, Lucide Icons
+- **UI:** Tailwind CSS, Shadcn/ui, Recharts, Lucide Icons, Radix UI
 - **State Management:** React Context API
-- **Notifications:** Sonner
+- **Notifications/Toast:** Sonner
 - **API:** REST (fetch, custom API clients)
 
 ---
@@ -33,24 +34,12 @@ A smart dashboard for meeting transcripts and AI-generated action items.
 
 ## Hosted App
 
-- **Frontend:** [https://insightboard-ai.vercel.app/](https://insightboard-ai.vercel.app/) (replace with your actual link)
+- **Frontend:** [https://insight-board-ai.vercel.app/](https://insightboard-ai.vercel.app/) (replace with your actual link)
 - **Backend:** [https://dgyy7el5y9.execute-api.ap-south-1.amazonaws.com/Prod](https://dgyy7el5y9.execute-api.ap-south-1.amazonaws.com/Prod) (AWS Lambda, FastAPI)
 
 ---
 
-## Level Completed
-
-- **Level:** Full-stack (Frontend + Backend + AI/LLM Integration + Cloud Deployment)
-- **Features:** 
-  - User authentication (register, login, JWT refresh)
-  - Transcript upload (manual or .txt file)
-  - AI-powered task extraction, summary, sentiment
-  - Task management (view, delete, analytics)
-  - Team-based filtering
-  - Download transcripts
-  - Responsive dashboard UI
-
----
+## Level Completed - 3 (except Unit and Integration Testing)
 
 ## Local Setup Instructions
 
